@@ -12,7 +12,7 @@ INSERT_TRIAL = """INSERT INTO test_result
           discharging_capacity, wh_charging, wh_discharging, temperature, cycle_count)
            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"""
 
-ADD_N = 10
+ADD_N = 20
 
 class BatteryDB():
     def __init__(self):
@@ -46,15 +46,18 @@ class BatteryDB():
         self.trial_end.append(trial_end_dict)
         self.other_trials.extend(others_trials)
         if len(self.trial_end) >= ADD_N:
-            try:
-                self.cursor_w.executemany(INSERT_TRIAL, self.other_trials)
-                self.cursor_w.executemany(INSERT_TRIAL_END, self.trial_end)
-                self.conn.commit()
-            except Exception as e:
-                self.conn.rollback()
-                raise e
-            self.trial_end = []
-            self.other_trials = []
+            self._upload()
 
     def flush_add_record(self):
-        pass
+        self._upload()
+
+    def _upload(self):
+        try:
+            self.cursor_w.executemany(INSERT_TRIAL, self.other_trials)
+            self.cursor_w.executemany(INSERT_TRIAL_END, self.trial_end)
+            self.conn.commit()
+        except Exception as e:
+            self.conn.rollback()
+            raise e
+        self.trial_end = []
+        self.other_trials = []

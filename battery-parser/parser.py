@@ -1,5 +1,6 @@
 import ntpath
 import traceback
+import threading
 
 from database import BatteryDB
 
@@ -11,14 +12,17 @@ class Parser():
             traceback.print_exception(type(e), e, e.__traceback__)
             raise type(e)("Cannot connect to the server. Details: " + str(e))
 
-    def upload_to_db(self, path):
+    def upload_to_db(self, path, queue):
+        queue.put(("upload-progress", "opening file"))
         test_name = ntpath.basename(path)
         test_name = test_name[:test_name.rfind(".")]
+        queue.put(("upload-progress", "connecting to database"))
         try:
             latest = self.db.get_latest_stored(test_name)
             if latest is None:
                 latest = -1
         except Exception as e:
+            queue.put(("upload-progress", "error"))
             traceback.print_exception(type(e), e, e.__traceback__)
             raise type(e)("Error getting data from server. Details: " + str(e))
 
@@ -34,7 +38,11 @@ class Parser():
 
                 line_state_one = []
 
+                queue.put(("upload-progress", "start parsing file"))
+                this_thread = threading.currentThread()
                 for line in f:
+                    if getattr(this_thread, "stop", False):
+                        break
                     if line.startswith("~"):
                         continue
                     else:
@@ -44,6 +52,7 @@ class Parser():
 
                         current_line = int(line_dictionary["DataSet"])
                         if current_line < latest:
+                            queue.put(("upload-progress", "skipping already uploaded"))
                             for _ in range(latest - current_line):
                                 next(f)
                             continue
@@ -71,6 +80,8 @@ class Parser():
                                         line_dictionary["Wh-Dis-Set"], line_dictionary["T1"],
                                         line_dictionary["Cyc-Count"]))
                         else:
+                            queue.put(("upload-progress", "processing line " + line_dictionary["DataSet"]))
+
                             avg_tension = tension_sum/tension_count
 
                             line_tuple = ((test_name, line_dictionary["DataSet"],
@@ -87,7 +98,9 @@ class Parser():
                             tension_count = 0
                             line_state_one = []
             self.db.flush_add_record()
+            queue.put(("upload-progress", "complete"))
         except Exception as e:
+            queue.put(("upload-progress", "error"))
             traceback.print_exception(type(e), e, e.__traceback__)
             raise type(e)("Error parsing the provided file. Details: " + str(e))
 

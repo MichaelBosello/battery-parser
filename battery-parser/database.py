@@ -2,7 +2,7 @@ from configparser import ConfigParser
 import mysql.connector
 
 LATEST_STORED_QUERY = """SELECT record_id from test_result_trial_end
-         where test_name = %s ORDER BY record_id DESC"""
+         where test_name = %s ORDER BY record_id DESC LIMIT 1"""
 INSERT_TRIAL_END = """INSERT INTO test_result_trial_end
          (test_name, record_id, time, step_time, line, voltage, current, charging_capacity,
           discharging_capacity, wh_charging, wh_discharging, temperature, cycle_count,
@@ -40,7 +40,10 @@ class BatteryDB():
 
     def get_latest_stored(self, test_name):
         self.cursor.execute(LATEST_STORED_QUERY, (test_name,))
-        return self.cursor.fetchone()
+        latest = self.cursor.fetchone()
+        if latest is not None:
+            latest = latest[0]
+        return latest
 
     def add_record(self, trial_end_dict, others_trials):
         self.trial_end.append(trial_end_dict)

@@ -3,6 +3,7 @@ import mysql.connector
 
 LINE_DELIVERY = 12
 LINE_CAPACITY_TEST = 19
+MAIN_CYCLE_DISCHARGE = 40
 
 LATEST_STORED_QUERY = """SELECT record_id from test_result_trial_end
          where test_name = %s ORDER BY record_id DESC LIMIT 1"""
@@ -20,9 +21,14 @@ FIRST_CAPACITY_QUERY = """SELECT discharging_capacity from test_result_trial_end
          where test_name = %s AND line = %s ORDER BY record_id ASC LIMIT 1"""
 ALL_CAPACITY_QUERY = """SELECT cycle_count, discharging_capacity from test_result_trial_end
          where test_name = %s AND line = %s ORDER BY record_id ASC"""
+ALL_DIS_MAIN_QUERY = """SELECT discharging_capacity, average_tension, max_temperature, wh_discharging from test_result_trial_end
+         where test_name = %s AND line = %s AND (cycle_count MOD %s) = 0 ORDER BY record_id ASC"""
+DIS_CAPACITY_QUERY = """SELECT discharging_capacity from test_result_trial_end
+         where test_name = %s AND line = %s ORDER BY record_id ASC"""
+TEMPERATURE_QUERY = """SELECT max_temperature from test_result_trial_end
+         where test_name = %s AND line = %s ORDER BY record_id ASC"""
 
-
-ADD_N = 20
+ADD_N = 10
 
 class BatteryDB():
     def __init__(self):
@@ -90,6 +96,30 @@ class BatteryDB():
         cursor.close()
         conn.close()
         return capacity
+
+    def get_main_dis_table(self, test_name, frequency):
+        conn, cursor = self.connect()
+        cursor.execute(ALL_DIS_MAIN_QUERY, (test_name, MAIN_CYCLE_DISCHARGE, frequency))
+        table = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        return table
+
+    def get_discharge(self, test_name):
+        conn, cursor = self.connect()
+        cursor.execute(DIS_CAPACITY_QUERY, (test_name, MAIN_CYCLE_DISCHARGE))
+        discharge = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        return discharge
+
+    def get_temperature(self, test_name):
+        conn, cursor = self.connect()
+        cursor.execute(TEMPERATURE_QUERY, (test_name, MAIN_CYCLE_DISCHARGE))
+        temperature = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        return temperature
 
     def add_record(self, trial_end_dict, others_trials):
         self.trial_end.append(trial_end_dict)

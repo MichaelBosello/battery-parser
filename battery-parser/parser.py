@@ -130,5 +130,26 @@ class Parser():
             traceback.print_exception(type(e), e, e.__traceback__)
             raise type(e)("Error getting data from server. Details: " + str(e))
 
+    def main_dis_table(self, test_name, frequency):
+        try:
+            return self.db.get_main_dis_table(test_name, frequency)
+        except Exception as e:
+            traceback.print_exception(type(e), e, e.__traceback__)
+            raise type(e)("Error getting data from server. Details: " + str(e))
+
+    def discharge(self, test_name):
+        try:
+            return self.db.get_discharge(test_name)
+        except Exception as e:
+            traceback.print_exception(type(e), e, e.__traceback__)
+            raise type(e)("Error getting data from server. Details: " + str(e))
+
+    def temperature(self, test_name):
+        try:
+            return self.db.get_temperature(test_name)
+        except Exception as e:
+            traceback.print_exception(type(e), e, e.__traceback__)
+            raise type(e)("Error getting data from server. Details: " + str(e))
+
 
 

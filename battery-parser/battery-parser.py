@@ -2,6 +2,7 @@
 
 from threading import Thread
 from queue import Queue, Empty
+import matplotlib.pyplot as plt
 
 import tkinter as tk
 from tkinter import messagebox
@@ -102,9 +103,9 @@ class GUI():
 
 
         frame_btn_main = tk.Frame(tab4)
-        self.main_plot_btn = tk.Button(frame_btn_main, text="Show main cycle plot")
+        self.main_plot_btn = tk.Button(frame_btn_main, text="Show main cycle plot", command=self.discharge_click)
         self.main_plot_btn.pack(side=tk.LEFT, padx=(20, 5), pady=20)
-        self.temperature_plot_btn = tk.Button(frame_btn_main, text="Show temperature plot")
+        self.temperature_plot_btn = tk.Button(frame_btn_main, text="Show temperature plot", command=self.temperature_click)
         self.temperature_plot_btn.pack(side=tk.LEFT, padx=(10, 5), pady=20)
         frame_btn_main.pack(fill=tk.X)
 
@@ -112,10 +113,10 @@ class GUI():
         self.test_main_n_cycle.set("100")
         frame_main = tk.Frame(tab4)
         cycle_label = ttk.Label(frame_main, text="Cycle frequency: ")
-        cycle_entry = tk.Entry(frame_main, textvariable=self.test_main_n_cycle, width=10)
-        self.main_table_btn = tk.Button(frame_main, text="Show main cycle table")
+        self.cycle_entry = tk.Entry(frame_main, textvariable=self.test_main_n_cycle, width=10)
+        self.main_table_btn = tk.Button(frame_main, text="Show main cycle discharge table", command=self.main_table_click)
         cycle_label.pack(side=tk.LEFT, padx=5, pady=5)
-        cycle_entry.pack(side=tk.LEFT, padx=5, pady=5)
+        self.cycle_entry.pack(side=tk.LEFT, padx=5, pady=5)
         self.main_table_btn.pack(side=tk.LEFT, padx=(30, 5), pady=5)
         frame_main.pack(fill=tk.X)
 
@@ -178,6 +179,39 @@ class GUI():
             process.daemon = True
             process.start()
 
+    def main_table_click(self):
+        self.main_tree.delete(*self.main_tree.get_children())
+        cycle_n = self.test_main_n_cycle.get()
+        if not self.test_name.get():
+            self.show_error("Enter a test name")
+        elif cycle_n.isdigit() and int(cycle_n) > 0 and int(cycle_n) <= 100:
+            self.main_table_btn['state'] = 'disabled'
+            self.cycle_entry['state'] = 'disabled'
+            process = Thread(target=self.tasks.main_dis_table, 
+                            args=(self.test_name.get(), int(self.test_main_n_cycle.get())))
+            process.daemon = True
+            process.start()
+        else:
+            self.show_error("Enter a frequency between [1, 100]")
+
+    def discharge_click(self):
+        if not self.test_name.get():
+            self.show_error("Enter a test name")
+        else:
+            self.main_plot_btn['state'] = 'disabled'
+            process = Thread(target=self.tasks.discharge, args=(self.test_name.get(),))
+            process.daemon = True
+            process.start()
+
+    def temperature_click(self):
+        if not self.test_name.get():
+            self.show_error("Enter a test name")
+        else:
+            self.temperature_plot_btn['state'] = 'disabled'
+            process = Thread(target=self.tasks.temperature, args=(self.test_name.get(),))
+            process.daemon = True
+            process.start()
+
     def show_info(self):
         messagebox.showinfo(TITLE, 
         """
@@ -192,6 +226,10 @@ class GUI():
         self.btn_open_file["text"] = "Import new data"
         self.compute_soc_btn['state'] = 'normal'
         self.show_capacity_btn['state'] = 'normal'
+        self.main_table_btn['state'] = 'normal'
+        self.cycle_entry['state'] = 'normal'
+        self.main_plot_btn['state'] = 'normal'
+        self.temperature_plot_btn['state'] = 'normal'
 
     def show_upload_progress(self, message):
         self.upload_label['text'] = message
@@ -211,6 +249,27 @@ class GUI():
             self.capacity_tree.insert("", i, i, values=test)
         self.show_capacity_btn['state'] = 'normal'
 
+    def show_dis_table(self, records):
+        for i, record in enumerate(records):
+            self.main_tree.insert("", i, i, 
+                values=(((i+1) * int(self.test_main_n_cycle.get()),) + record))
+        self.main_table_btn['state'] = 'normal'
+        self.cycle_entry['state'] = 'normal'
+
+    def discharge_plot(self, records):
+        self.main_plot_btn['state'] = 'normal'
+        plt.plot(records)
+        plt.ylabel('discharge capacity [Ah]')
+        plt.xlabel('cycle')
+        plt.show()
+
+    def temperature_plot(self, records):
+        self.temperature_plot_btn['state'] = 'normal'
+        plt.plot(records)
+        plt.ylabel("max temperature ['C]")
+        plt.xlabel('cycle')
+        plt.show()
+
     def process_queue(self):
         try:
             msg = self.queue.get(0)
@@ -228,6 +287,12 @@ class GUI():
             self.show_delivery_percent(msg[1])
         if msg[0] == "capacity_test":
             self.show_capacity_test(msg[1])
+        if msg[0] == "main_dis_table":
+            self.show_dis_table(msg[1])
+        if msg[0] == "discharge":
+            self.discharge_plot(msg[1])
+        if msg[0] == "temperature":
+            self.temperature_plot(msg[1])
 
         self.process_queue()
 
@@ -284,6 +349,42 @@ class Tasks():
                     self.queue.put(("error", "No data for " + test_name))
                 else:
                     self.queue.put(("capacity_test", tests))
+            except Exception as e:
+                self.queue.put(("error", str(e)))
+
+    def main_dis_table(self, test_name, frequency):
+        self.__build_parser()
+        if self.parser is not None:
+            try:
+                main_dis = self.parser.main_dis_table(test_name, frequency)
+                if main_dis is None or not main_dis:
+                    self.queue.put(("error", "No data for " + test_name))
+                else:
+                    self.queue.put(("main_dis_table", main_dis))
+            except Exception as e:
+                self.queue.put(("error", str(e)))
+
+    def discharge(self, test_name):
+        self.__build_parser()
+        if self.parser is not None:
+            try:
+                result = self.parser.discharge(test_name)
+                if result is None or not result:
+                    self.queue.put(("error", "No data for " + test_name))
+                else:
+                    self.queue.put(("discharge", result))
+            except Exception as e:
+                self.queue.put(("error", str(e)))
+
+    def temperature(self, test_name):
+        self.__build_parser()
+        if self.parser is not None:
+            try:
+                result = self.parser.temperature(test_name)
+                if result is None or not result:
+                    self.queue.put(("error", "No data for " + test_name))
+                else:
+                    self.queue.put(("temperature", result))
             except Exception as e:
                 self.queue.put(("error", str(e)))
 

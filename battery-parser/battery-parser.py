@@ -80,7 +80,7 @@ class GUI():
 
         frame_tc = tk.Frame(tab2)
         tc_label = ttk.Label(frame_tc, text="Test Capacity")
-        self.show_capacity_btn = tk.Button(frame_tc, text="Show capacity")
+        self.show_capacity_btn = tk.Button(frame_tc, text="Show capacity", command=self.capacity_click)
         tc_label.pack(side=tk.LEFT, padx=5, pady=5)
         self.show_capacity_btn.pack(side=tk.LEFT, padx=5, pady=5)
         frame_tc.pack(fill=tk.X)
@@ -168,6 +168,16 @@ class GUI():
             process.start()
             process_percent.start()
 
+    def capacity_click(self):
+        self.capacity_tree.delete(*self.capacity_tree.get_children())
+        if not self.test_name.get():
+            self.show_error("Enter a test name")
+        else:
+            self.show_capacity_btn['state'] = 'disabled'
+            process = Thread(target=self.tasks.capacity_tests, args=(self.test_name.get(),))
+            process.daemon = True
+            process.start()
+
     def show_info(self):
         messagebox.showinfo(TITLE, 
         """
@@ -181,6 +191,7 @@ class GUI():
         messagebox.showinfo("Error", message)
         self.btn_open_file["text"] = "Import new data"
         self.compute_soc_btn['state'] = 'normal'
+        self.show_capacity_btn['state'] = 'normal'
 
     def show_upload_progress(self, message):
         self.upload_label['text'] = message
@@ -194,6 +205,11 @@ class GUI():
     def show_delivery_percent(self, soc_percent):
         self.percent_delivery_soc.set(str(soc_percent))
         self.compute_soc_btn['state'] = 'normal'
+
+    def show_capacity_test(self, tests):
+        for i, test in enumerate(tests):
+            self.capacity_tree.insert("", i, i, values=test)
+        self.show_capacity_btn['state'] = 'normal'
 
     def process_queue(self):
         try:
@@ -210,6 +226,8 @@ class GUI():
             self.show_delivery(msg[1])
         if msg[0] == "delivery_SOC_percent":
             self.show_delivery_percent(msg[1])
+        if msg[0] == "capacity_test":
+            self.show_capacity_test(msg[1])
 
         self.process_queue()
 
@@ -265,7 +283,7 @@ class Tasks():
                 if tests is None or not tests:
                     self.queue.put(("error", "No data for " + test_name))
                 else:
-                    self.queue.put(("capacity_tests", str(tests)))
+                    self.queue.put(("capacity_test", tests))
             except Exception as e:
                 self.queue.put(("error", str(e)))
 

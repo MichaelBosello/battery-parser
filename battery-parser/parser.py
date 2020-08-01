@@ -105,4 +105,30 @@ class Parser():
             raise type(e)("Error parsing the provided file. Details: " + str(e))
 
 
+    def delivery_SOC(self, test_name):
+        try:
+            return self.db.get_delivery_capacity(test_name)
+        except Exception as e:
+            traceback.print_exception(type(e), e, e.__traceback__)
+            raise type(e)("Error getting data from server. Details: " + str(e))
+
+    def delivery_SOC_percent(self, test_name):
+        try:
+            delivery_capacity = self.db.get_delivery_capacity(test_name)
+            capacity = self.db.get_first_capacity(test_name)
+            if delivery_capacity is None or capacity is None:
+                return None
+            return delivery_capacity/capacity
+        except Exception as e:
+            traceback.print_exception(type(e), e, e.__traceback__)
+            raise type(e)("Error getting data from server. Details: " + str(e))
+
+    def capacity_tests(self, test_name):
+        try:
+            return self.db.get_test_capacity(test_name)
+        except Exception as e:
+            traceback.print_exception(type(e), e, e.__traceback__)
+            raise type(e)("Error getting data from server. Details: " + str(e))
+
+
 

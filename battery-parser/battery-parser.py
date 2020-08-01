@@ -74,15 +74,15 @@ class GUI():
         percent_delivery_soc_entry.pack(padx=5, pady=5)
         frame_soc_label.pack(side=tk.LEFT)
         frame_soc_entry.pack(side=tk.LEFT)
-        self.compute_soc_btn = tk.Button(frame_soc_main, text="Calculate")
+        self.compute_soc_btn = tk.Button(frame_soc_main, text="Calculate", command=self.delivery_click)
         self.compute_soc_btn.pack(side=tk.LEFT)
         frame_soc_main.pack(fill=tk.X)
 
         frame_tc = tk.Frame(tab2)
         tc_label = ttk.Label(frame_tc, text="Test Capacity")
-        self.compute_soc_btn = tk.Button(frame_tc, text="Show capacity")
+        self.show_capacity_btn = tk.Button(frame_tc, text="Show capacity")
         tc_label.pack(side=tk.LEFT, padx=5, pady=5)
-        self.compute_soc_btn.pack(side=tk.LEFT, padx=5, pady=5)
+        self.show_capacity_btn.pack(side=tk.LEFT, padx=5, pady=5)
         frame_tc.pack(fill=tk.X)
 
         self.capacity_tree = ttk.Treeview(tab2)
@@ -154,6 +154,20 @@ class GUI():
             self.btn_open_file["text"] = "Import new data"
             self.queue.put(("upload-progress", "interrupted"))
 
+    def delivery_click(self):
+        self.delivery_soc.set("")
+        self.percent_delivery_soc.set("")
+        if not self.test_name.get():
+            self.show_error("Enter a test name")
+        else:
+            self.compute_soc_btn['state'] = 'disabled'
+            process = Thread(target=self.tasks.delivery_SOC, args=(self.test_name.get(),))
+            process.daemon = True
+            process_percent = Thread(target=self.tasks.delivery_SOC_percent, args=(self.test_name.get(),))
+            process_percent.daemon = True
+            process.start()
+            process_percent.start()
+
     def show_info(self):
         messagebox.showinfo(TITLE, 
         """
@@ -166,11 +180,20 @@ class GUI():
     def show_error(self, message):
         messagebox.showinfo("Error", message)
         self.btn_open_file["text"] = "Import new data"
+        self.compute_soc_btn['state'] = 'normal'
 
     def show_upload_progress(self, message):
         self.upload_label['text'] = message
         if message == "complete":
             self.btn_open_file["text"] = "Import new data"
+
+    def show_delivery(self, soc):
+        self.delivery_soc.set(str(soc))
+        self.compute_soc_btn['state'] = 'normal'
+
+    def show_delivery_percent(self, soc_percent):
+        self.percent_delivery_soc.set(str(soc_percent))
+        self.compute_soc_btn['state'] = 'normal'
 
     def process_queue(self):
         try:
@@ -183,6 +206,10 @@ class GUI():
             self.show_error(msg[1])
         if msg[0] == "upload-progress":
             self.show_upload_progress(msg[1])
+        if msg[0] == "delivery_SOC":
+            self.show_delivery(msg[1])
+        if msg[0] == "delivery_SOC_percent":
+            self.show_delivery_percent(msg[1])
 
         self.process_queue()
 
@@ -191,7 +218,7 @@ class Tasks():
         self.queue = queue
         self.parser = None
 
-    def process_file(self, filepath):
+    def __build_parser(self):
         if self.parser is None:
             try:
                 self.parser = Parser()
@@ -200,9 +227,45 @@ class Tasks():
                 self.parser = None
                 self.queue.put(("error", str(e)))
 
+    def process_file(self, filepath):
+        self.__build_parser()
         if self.parser is not None:
             try:
                 self.parser.upload_to_db(filepath, self.queue)
+            except Exception as e:
+                self.queue.put(("error", str(e)))
+
+    def delivery_SOC(self, test_name):
+        self.__build_parser()
+        if self.parser is not None:
+            try:
+                delivery = self.parser.delivery_SOC(test_name)
+                if delivery is None:
+                    self.queue.put(("error", "No data for " + test_name))
+                else:
+                    self.queue.put(("delivery_SOC", str(delivery)))
+            except Exception as e:
+                self.queue.put(("error", str(e)))
+
+    def delivery_SOC_percent(self, test_name):
+        self.__build_parser()
+        if self.parser is not None:
+            try:
+                delivery_percent = self.parser.delivery_SOC_percent(test_name)
+                if delivery_percent is not None:
+                    self.queue.put(("delivery_SOC_percent", str(delivery_percent)))
+            except Exception as e:
+                self.queue.put(("error", str(e)))
+
+    def capacity_tests(self, test_name):
+        self.__build_parser()
+        if self.parser is not None:
+            try:
+                tests = self.parser.capacity_tests(test_name)
+                if tests is None or not tests:
+                    self.queue.put(("error", "No data for " + test_name))
+                else:
+                    self.queue.put(("capacity_tests", str(tests)))
             except Exception as e:
                 self.queue.put(("error", str(e)))
 

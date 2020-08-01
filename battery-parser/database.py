@@ -4,6 +4,8 @@ import mysql.connector
 LINE_DELIVERY = 12
 LINE_CAPACITY_TEST = 19
 MAIN_CYCLE_DISCHARGE = 40
+HIGH_SAMPLING_UP = 29
+HIGH_SAMPLING_DOWN = 30
 
 LATEST_STORED_QUERY = """SELECT record_id from test_result_trial_end
          where test_name = %s ORDER BY record_id DESC LIMIT 1"""
@@ -26,6 +28,8 @@ ALL_DIS_MAIN_QUERY = """SELECT discharging_capacity, average_tension, max_temper
 DIS_CAPACITY_QUERY = """SELECT discharging_capacity from test_result_trial_end
          where test_name = %s AND line = %s ORDER BY record_id ASC"""
 TEMPERATURE_QUERY = """SELECT max_temperature from test_result_trial_end
+         where test_name = %s AND line = %s ORDER BY record_id ASC"""
+HIGH_SAMPLING_QUERY = """SELECT voltage, current, discharging_capacity from test_result_trial_end
          where test_name = %s AND line = %s ORDER BY record_id ASC"""
 
 ADD_N = 10
@@ -120,6 +124,22 @@ class BatteryDB():
         cursor.close()
         conn.close()
         return temperature
+
+    def get_high_sampling_up(self, test_name):
+        conn, cursor = self.connect()
+        cursor.execute(HIGH_SAMPLING_QUERY, (test_name, HIGH_SAMPLING_UP))
+        hs = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        return hs
+
+    def get_high_sampling_down(self, test_name):
+        conn, cursor = self.connect()
+        cursor.execute(HIGH_SAMPLING_QUERY, (test_name, HIGH_SAMPLING_DOWN))
+        hs = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        return hs
 
     def add_record(self, trial_end_dict, others_trials):
         self.trial_end.append(trial_end_dict)

@@ -97,7 +97,7 @@ class GUI():
 
 
         frame_t3 = tk.Frame(tab3)
-        self.high_sampling_plot_btn = tk.Button(frame_t3, text="Show high sampling plot")
+        self.high_sampling_plot_btn = tk.Button(frame_t3, text="Show high sampling plot", command=self.high_sampling_click)
         self.high_sampling_plot_btn.pack(padx=10, pady=16)
         frame_t3.pack(fill=tk.X)
 
@@ -212,6 +212,15 @@ class GUI():
             process.daemon = True
             process.start()
 
+    def high_sampling_click(self):
+        if not self.test_name.get():
+            self.show_error("Enter a test name")
+        else:
+            self.high_sampling_plot_btn['state'] = 'disabled'
+            process = Thread(target=self.tasks.high_sampling, args=(self.test_name.get(),))
+            process.daemon = True
+            process.start()
+
     def show_info(self):
         messagebox.showinfo(TITLE, 
         """
@@ -230,6 +239,7 @@ class GUI():
         self.cycle_entry['state'] = 'normal'
         self.main_plot_btn['state'] = 'normal'
         self.temperature_plot_btn['state'] = 'normal'
+        self.high_sampling_plot_btn['state'] = 'normal'
 
     def show_upload_progress(self, message):
         self.upload_label['text'] = message
@@ -270,6 +280,13 @@ class GUI():
         plt.xlabel('cycle')
         plt.show()
 
+    def high_sampling_plot(self, records):
+        self.high_sampling_plot_btn['state'] = 'normal'
+        plt.plot(records[1], records[0])
+        plt.ylabel("Resistence [mOhm]")
+        plt.xlabel('Capacity [Ah]')
+        plt.show()
+
     def process_queue(self):
         try:
             msg = self.queue.get(0)
@@ -293,6 +310,8 @@ class GUI():
             self.discharge_plot(msg[1])
         if msg[0] == "temperature":
             self.temperature_plot(msg[1])
+        if msg[0] == "high_sampling":
+            self.high_sampling_plot(msg[1])
 
         self.process_queue()
 
@@ -385,6 +404,18 @@ class Tasks():
                     self.queue.put(("error", "No data for " + test_name))
                 else:
                     self.queue.put(("temperature", result))
+            except Exception as e:
+                self.queue.put(("error", str(e)))
+
+    def high_sampling(self, test_name):
+        self.__build_parser()
+        if self.parser is not None:
+            try:
+                result = self.parser.high_sampling(test_name)
+                if result is None:
+                    self.queue.put(("error", "No data for " + test_name))
+                else:
+                    self.queue.put(("high_sampling", result))
             except Exception as e:
                 self.queue.put(("error", str(e)))
 

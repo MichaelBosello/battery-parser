@@ -268,24 +268,27 @@ class GUI():
 
     def discharge_plot(self, records):
         self.main_plot_btn['state'] = 'normal'
+        plt.figure()
         plt.plot(records)
         plt.ylabel('discharge capacity [Ah]')
         plt.xlabel('cycle')
-        plt.show()
+        plt.show(block=False)
 
     def temperature_plot(self, records):
         self.temperature_plot_btn['state'] = 'normal'
+        plt.figure()
         plt.plot(records)
         plt.ylabel("max temperature ['C]")
         plt.xlabel('cycle')
-        plt.show()
+        plt.show(block=False)
 
     def high_sampling_plot(self, records):
         self.high_sampling_plot_btn['state'] = 'normal'
+        plt.figure()
         plt.plot(records[1], records[0])
         plt.ylabel("Resistence [mOhm]")
         plt.xlabel('Capacity [Ah]')
-        plt.show()
+        plt.show(block=False)
 
     def process_queue(self):
         try:

@@ -9,7 +9,7 @@ from tkinter import messagebox
 from tkinter import ttk
 from tkinter.filedialog import askopenfilename
 
-from parser import Parser
+from batteryparser import BatteryParser
 
 TITLE = "Battery data manager"
 WIDTH = 1000
@@ -323,7 +323,7 @@ class Tasks():
     def __build_parser(self):
         if self.parser is None:
             try:
-                self.parser = Parser()
+                self.parser = BatteryParser()
             except Exception as e:
                 self.queue.put(("upload-progress", "Error connecting to database"))
                 self.parser = None

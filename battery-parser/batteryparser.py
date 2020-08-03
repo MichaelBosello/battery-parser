@@ -4,7 +4,7 @@ import threading
 
 from database import BatteryDB
 
-class Parser():
+class BatteryParser():
     def __init__(self):
         try:
             self.db = BatteryDB()

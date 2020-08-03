@@ -13,6 +13,6 @@ Install Python 3.x
 # Quick start
 Insert the connection parameters to use your MySQL database in *db.config*. Use *db.config.example* as a template.
 ## Run
-`python3 battery-parser.py`
+`python3 batterydatamanager.py`
 ## Build executable
 Use [pyinnstaller](https://www.pyinstaller.org/)

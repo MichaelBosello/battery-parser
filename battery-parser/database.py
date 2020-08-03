@@ -1,5 +1,7 @@
 from configparser import ConfigParser
 import mysql.connector
+import pathlib
+import os
 
 LINE_DELIVERY = 12
 LINE_CAPACITY_TEST = 19
@@ -37,7 +39,7 @@ ADD_N = 10
 class BatteryDB():
     def __init__(self):
         config = ConfigParser()
-        config.read('db.config')
+        config.read(self.resource_path('db.config'))
         self.host = config.get('client', 'host')
         self.port = config.getint('client', 'port')
         self.user = config.get('client', 'user')
@@ -50,6 +52,10 @@ class BatteryDB():
         conn, cursor = self.connect()
         cursor.close()
         conn.close()
+
+    def resource_path(self, relative_path):
+        base_path = pathlib.Path(__file__).parent.absolute()
+        return os.path.join(base_path, relative_path)
 
     def connect(self):
         conn = mysql.connector.connect(

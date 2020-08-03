@@ -15,4 +15,20 @@ Insert the connection parameters to use your MySQL database in *db.config*. Use 
 ## Run
 `python3 batterydatamanager.py`
 ## Build executable
-Use [pyinnstaller](https://www.pyinstaller.org/)
+Use [pyinnstaller](https://www.pyinstaller.org/):
+
+`pip3 install pyinstaller`
+
+Pyinstaller has problems with current matplotlib version, so:
+
+`pip3 install matplotlib==3.2.2`
+
+## Windows
+
+Install [Visual C++ Redistributable for Visual Studio 2015](https://www.microsoft.com/en-us/download/details.aspx?id=48145)
+
+`python -m PyInstaller batterydatamanager.py --onefile --windowed --clean --add-data db.config;.`
+
+## MacOS
+
+`python3 -m PyInstaller batterydatamanager.py --onefile --windowed --clean --add-data db.config:. --add-binary='/System/Library/Frameworks/Tk.framework/Tk':'tk' --add-binary='/System/Library/Frameworks/Tcl.framework/Tcl':'tcl'`

@@ -1,6 +1,7 @@
 import ntpath
 import traceback
 import threading
+import csv
 
 from database import BatteryDB
 
@@ -136,6 +137,11 @@ class BatteryParser():
         except Exception as e:
             traceback.print_exception(type(e), e, e.__traceback__)
             raise type(e)("Error getting data from server. Details: " + str(e))
+
+    def export_table(self, table, export_file):
+        csv_writer = csv.writer(export_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+        for record in table:
+            csv_writer.writerow(record)
 
     def discharge(self, test_name):
         try:

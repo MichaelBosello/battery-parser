@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import tkinter as tk
 from tkinter import messagebox
 from tkinter import ttk
-from tkinter.filedialog import askopenfilename
+from tkinter.filedialog import askopenfilename, asksaveasfile
 
 from batteryparser import BatteryParser
 
@@ -115,9 +115,11 @@ class GUI():
         cycle_label = ttk.Label(frame_main, text="Cycle frequency: ")
         self.cycle_entry = tk.Entry(frame_main, textvariable=self.test_main_n_cycle, width=10)
         self.main_table_btn = tk.Button(frame_main, text="Show main cycle discharge table", command=self.main_table_click)
+        self.export_table_btn = tk.Button(frame_main, text="Export table", command=self.export_table_click)
         cycle_label.pack(side=tk.LEFT, padx=5, pady=5)
         self.cycle_entry.pack(side=tk.LEFT, padx=5, pady=5)
         self.main_table_btn.pack(side=tk.LEFT, padx=(30, 5), pady=5)
+        self.export_table_btn.pack(side=tk.LEFT, padx=(30, 5), pady=5)
         frame_main.pack(fill=tk.X)
 
         self.main_tree = ttk.Treeview(tab4)
@@ -194,6 +196,23 @@ class GUI():
         else:
             self.show_error("Enter a frequency between [1, 100]")
 
+    def export_table_click(self):
+        cycle_n = self.test_main_n_cycle.get()
+        if not self.test_name.get():
+            self.show_error("Enter a test name")
+        elif cycle_n.isdigit() and int(cycle_n) > 0 and int(cycle_n) <= 100:
+            self.export_table_btn['state'] = 'disabled'
+            self.cycle_entry['state'] = 'disabled'
+            f = asksaveasfile(mode='w', defaultextension=".csv")
+            if f is None:
+                return
+            process = Thread(target=self.tasks.export_table, 
+                            args=(self.test_name.get(), int(self.test_main_n_cycle.get()), f))
+            process.daemon = True
+            process.start()
+        else:
+            self.show_error("Enter a frequency between [1, 100]")
+
     def discharge_click(self):
         if not self.test_name.get():
             self.show_error("Enter a test name")
@@ -230,6 +249,18 @@ class GUI():
         Get one copy at: \nwww.apache.org/licenses/LICENSE-2.0
         """)
 
+    def show_complete(self, message):
+        messagebox.showinfo("Done", message)
+        self.btn_open_file["text"] = "Import new data"
+        self.compute_soc_btn['state'] = 'normal'
+        self.show_capacity_btn['state'] = 'normal'
+        self.main_table_btn['state'] = 'normal'
+        self.cycle_entry['state'] = 'normal'
+        self.main_plot_btn['state'] = 'normal'
+        self.temperature_plot_btn['state'] = 'normal'
+        self.high_sampling_plot_btn['state'] = 'normal'
+        self.export_table_btn['state'] = 'normal'
+
     def show_error(self, message):
         messagebox.showinfo("Error", message)
         self.btn_open_file["text"] = "Import new data"
@@ -240,6 +271,7 @@ class GUI():
         self.main_plot_btn['state'] = 'normal'
         self.temperature_plot_btn['state'] = 'normal'
         self.high_sampling_plot_btn['state'] = 'normal'
+        self.export_table_btn['state'] = 'normal'
 
     def show_upload_progress(self, message):
         self.upload_label['text'] = message
@@ -302,6 +334,8 @@ class GUI():
 
         if msg[0] == "error":
             self.show_error(msg[1])
+        if msg[0] == "complete":
+            self.show_complete(msg[1])
         if msg[0] == "upload-progress":
             self.show_upload_progress(msg[1])
         if msg[0] == "delivery_SOC":
@@ -386,6 +420,22 @@ class Tasks():
                     self.queue.put(("error", "No data for " + test_name))
                 else:
                     self.queue.put(("main_dis_table", main_dis))
+            except Exception as e:
+                self.queue.put(("error", str(e)))
+
+    def export_table(self, test_name, frequency, filepath):
+        self.__build_parser()
+        if self.parser is not None:
+            try:
+                main_dis = self.parser.main_dis_table(test_name, frequency)
+                if main_dis is None or not main_dis:
+                    self.queue.put(("error", "No data for " + test_name))
+                else:
+                    table = [("cycle", "discharging_capacity", "average_tension", "max_temperature", "wh_discharging")]
+                    for i, record in enumerate(main_dis):
+                        table.append(( ((i+1) * frequency,) + record))
+                    self.parser.export_table(table, filepath)
+                    self.queue.put(("complete", "Table exported succesfully"))
             except Exception as e:
                 self.queue.put(("error", str(e)))
 

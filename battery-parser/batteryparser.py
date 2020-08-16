@@ -157,15 +157,18 @@ class BatteryParser():
             hs_down = self.db.get_high_sampling_down(test_name)
             if hs_up is None or not hs_up or hs_down is None or not hs_down:
                 return None
-            resistence = []
-            capacity = []
+            results = []
             for i in range(0, len(hs_up)):
+                if hs_up[i][3] == 1:
+                    resistence = []
+                    capacity = []
+                    results.append((resistence, capacity))
                 deltaV = hs_up[i][0]-hs_down[i][0]
                 deltaI = hs_up[i][1]-hs_down[i][1]
                 r = (deltaV/deltaI)*1000
                 resistence.append(r)
                 capacity.append(hs_down[i][2])
-            return (resistence, capacity)
+            return results
         except Exception as e:
             traceback.print_exception(type(e), e, e.__traceback__)
             raise type(e)("Error getting data from server. Details: " + str(e))

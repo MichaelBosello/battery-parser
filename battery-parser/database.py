@@ -31,7 +31,7 @@ DIS_CAPACITY_QUERY = """SELECT discharging_capacity from test_result_trial_end
          where test_name = %s AND line = %s ORDER BY record_id ASC"""
 TEMPERATURE_QUERY = """SELECT max_temperature from test_result_trial_end
          where test_name = %s AND line = %s ORDER BY record_id ASC"""
-HIGH_SAMPLING_QUERY = """SELECT voltage, current, discharging_capacity from test_result_trial_end
+HIGH_SAMPLING_QUERY = """SELECT voltage, current, discharging_capacity, cycle_count from test_result_trial_end
          where test_name = %s AND line = %s ORDER BY record_id ASC"""
 
 ADD_N = 10

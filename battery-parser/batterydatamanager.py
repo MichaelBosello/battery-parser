@@ -285,7 +285,10 @@ class GUI():
     def high_sampling_plot(self, records):
         self.high_sampling_plot_btn['state'] = 'normal'
         plt.figure()
-        plt.plot(records[1], records[0])
+        for i, record in enumerate(records):
+            plt.plot(record[1], record[0], label = "test " + str(i))
+        plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)
+        plt.subplots_adjust(right=0.8)
         plt.ylabel("Resistence [mOhm]")
         plt.xlabel('Capacity [Ah]')
         plt.show(block=False)

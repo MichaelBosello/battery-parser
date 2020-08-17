@@ -157,6 +157,13 @@ class BatteryParser():
             traceback.print_exception(type(e), e, e.__traceback__)
             raise type(e)("Error getting data from server. Details: " + str(e))
 
+    def wh(self, test_name):
+        try:
+            return self.db.get_wh(test_name)
+        except Exception as e:
+            traceback.print_exception(type(e), e, e.__traceback__)
+            raise type(e)("Error getting data from server. Details: " + str(e))
+
     def high_sampling(self, test_name):
         try:
             hs_up = self.db.get_high_sampling_up(test_name)

@@ -109,6 +109,8 @@ class GUI():
         self.main_plot_btn.pack(side=tk.LEFT, padx=(20, 5), pady=20)
         self.temperature_plot_btn = tk.Button(frame_btn_main, text="Show temperature plot", command=self.temperature_click)
         self.temperature_plot_btn.pack(side=tk.LEFT, padx=(10, 5), pady=20)
+        self.wh_plot_btn = tk.Button(frame_btn_main, text="Show wh plot", command=self.wh_click)
+        self.wh_plot_btn.pack(side=tk.LEFT, padx=(10, 5), pady=20)
         frame_btn_main.pack(fill=tk.X)
 
         self.test_main_n_cycle = tk.StringVar()
@@ -242,6 +244,15 @@ class GUI():
             process.daemon = True
             process.start()
 
+    def wh_click(self):
+        if not self.test_name.get():
+            self.show_error("Enter a test name")
+        else:
+            self.wh_plot_btn['state'] = 'disabled'
+            process = Thread(target=self.tasks.wh, args=(self.test_name.get(),))
+            process.daemon = True
+            process.start()
+
     def high_sampling_click(self):
         if not self.test_name.get():
             self.show_error("Enter a test name")
@@ -270,6 +281,7 @@ class GUI():
         self.cycle_entry['state'] = 'normal'
         self.main_plot_btn['state'] = 'normal'
         self.temperature_plot_btn['state'] = 'normal'
+        self.wh_plot_btn['state'] = 'normal'
         self.high_sampling_plot_btn['state'] = 'normal'
         self.export_table_btn['state'] = 'normal'
 
@@ -283,6 +295,7 @@ class GUI():
         self.cycle_entry['state'] = 'normal'
         self.main_plot_btn['state'] = 'normal'
         self.temperature_plot_btn['state'] = 'normal'
+        self.wh_plot_btn['state'] = 'normal'
         self.high_sampling_plot_btn['state'] = 'normal'
         self.export_table_btn['state'] = 'normal'
 
@@ -339,6 +352,14 @@ class GUI():
         plt.xlabel('cycle')
         plt.show(block=False)
 
+    def wh_plot(self, records):
+        self.wh_plot_btn['state'] = 'normal'
+        plt.figure()
+        plt.plot(range(1, len(records) + 1), records)
+        plt.ylabel("Wh discharge")
+        plt.xlabel('cycle')
+        plt.show(block=False)
+
     def high_sampling_plot(self, records):
         self.high_sampling_plot_btn['state'] = 'normal'
         plt.figure()
@@ -377,6 +398,8 @@ class GUI():
             self.discharge_plot(msg[1])
         if msg[0] == "temperature":
             self.temperature_plot(msg[1])
+        if msg[0] == "wh":
+            self.wh_plot(msg[1])
         if msg[0] == "high_sampling":
             self.high_sampling_plot(msg[1])
 
@@ -499,6 +522,18 @@ class Tasks():
                     self.queue.put(("error", "No data for " + test_name))
                 else:
                     self.queue.put(("temperature", result))
+            except Exception as e:
+                self.queue.put(("error", str(e)))
+
+    def wh(self, test_name):
+        self.__build_parser()
+        if self.parser is not None:
+            try:
+                result = self.parser.wh(test_name)
+                if result is None or not result:
+                    self.queue.put(("error", "No data for " + test_name))
+                else:
+                    self.queue.put(("wh", result))
             except Exception as e:
                 self.queue.put(("error", str(e)))
 

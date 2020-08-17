@@ -50,12 +50,18 @@ class GUI():
         test_name_entry_t2 = tk.Entry(frame_name_t2, textvariable=self.test_name, width=40)
         test_name_entry_t3 = tk.Entry(frame_name_t3, textvariable=self.test_name, width=40)
         test_name_entry_t4 = tk.Entry(frame_name_t4, textvariable=self.test_name, width=40)
+        separator_label_entry_t2 = ttk.Label(frame_name_t2, text="use ; as a separator for multiple test plots")
+        separator_label_entry_t3 = ttk.Label(frame_name_t3, text="use ; as a separator for multiple test plots")
+        separator_label_entry_t4 = ttk.Label(frame_name_t4, text="use ; as a separator for multiple test plots")
         test_label_entry_t2.pack(side=tk.LEFT, padx=5, pady=5)
         test_label_entry_t3.pack(side=tk.LEFT, padx=5, pady=5)
         test_label_entry_t4.pack(side=tk.LEFT, padx=5, pady=5)
         test_name_entry_t2.pack(side=tk.LEFT, padx=5, pady=5)
         test_name_entry_t3.pack(side=tk.LEFT, padx=5, pady=5)
         test_name_entry_t4.pack(side=tk.LEFT, padx=5, pady=5)
+        separator_label_entry_t2.pack(side=tk.LEFT, padx=5, pady=5)
+        separator_label_entry_t3.pack(side=tk.LEFT, padx=5, pady=5)
+        separator_label_entry_t4.pack(side=tk.LEFT, padx=5, pady=5)
         frame_name_t2.pack(fill=tk.X)
         frame_name_t3.pack(fill=tk.X)
         frame_name_t4.pack(fill=tk.X)
@@ -325,48 +331,60 @@ class GUI():
         self.cycle_entry['state'] = 'normal'
 
     def percent_capacity_plot(self, records):
-        records = [record[1] for record in records]
-        max_capacity = max(records)
-        percent_values = [record / max_capacity * 100 for record in records]
-        cycle_index = range(1, len(percent_values) + 1)
-        plt.figure()
-        plt.plot(cycle_index, percent_values)
+        self.percent_capacity_btn['state'] = 'normal'
+        plt.figure(figsize=(12, 8))
+        for record in records:
+            values = [r[1] for r in record[1]]
+            max_capacity = max(values)
+            percents = [r / max_capacity * 100 for r in values]
+            plt.plot(range(1, len(percents) + 1), percents, label = record[0])
+        plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)
+        plt.subplots_adjust(right=0.75)
         plt.ylabel('discharge capacity %')
         plt.xlabel('cycle')
         plt.show(block=False)
-        self.percent_capacity_btn['state'] = 'normal'
 
     def discharge_plot(self, records):
         self.main_plot_btn['state'] = 'normal'
-        plt.figure()
-        plt.plot(range(1, len(records) + 1), records)
+        plt.figure(figsize=(12, 8))
+        for record in records:
+            plt.plot(range(1, len(record[1]) + 1), record[1], label = record[0])
+        plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)
+        plt.subplots_adjust(right=0.75)
         plt.ylabel('discharge capacity [Ah]')
         plt.xlabel('cycle')
         plt.show(block=False)
 
     def temperature_plot(self, records):
         self.temperature_plot_btn['state'] = 'normal'
-        plt.figure()
-        plt.plot(range(1, len(records) + 1), records)
+        plt.figure(figsize=(12, 8))
+        for record in records:
+            plt.plot(range(1, len(record[1]) + 1), record[1], label = record[0])
+        plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)
+        plt.subplots_adjust(right=0.75)
         plt.ylabel("max temperature ['C]")
         plt.xlabel('cycle')
         plt.show(block=False)
 
     def wh_plot(self, records):
         self.wh_plot_btn['state'] = 'normal'
-        plt.figure()
-        plt.plot(range(1, len(records) + 1), records)
+        plt.figure(figsize=(12, 8))
+        for record in records:
+            plt.plot(range(1, len(record[1]) + 1), record[1], label = record[0])
+        plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)
+        plt.subplots_adjust(right=0.75)
         plt.ylabel("Wh discharge")
         plt.xlabel('cycle')
         plt.show(block=False)
 
     def high_sampling_plot(self, records):
         self.high_sampling_plot_btn['state'] = 'normal'
-        plt.figure()
-        for i, record in enumerate(records):
-            plt.plot(record[1], record[0], label = "test " + str(i))
+        plt.figure(figsize=(12, 8))
+        for record in records:
+            for i, r in enumerate(record[1]):
+                plt.plot(r[1], r[0], label = record[0] + " run " + str(i + 1))
         plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)
-        plt.subplots_adjust(right=0.8)
+        plt.subplots_adjust(right=0.75)
         plt.ylabel("Resistence [mOhm]")
         plt.xlabel('Capacity [Ah]')
         plt.show(block=False)
@@ -493,11 +511,17 @@ class Tasks():
         self.__build_parser()
         if self.parser is not None:
             try:
-                tests = self.parser.capacity_tests(test_name)
-                if tests is None or not tests:
-                    self.queue.put(("error", "No data for " + test_name))
-                else:
-                    self.queue.put(("percent_capacity", tests))
+                tests_name = test_name.split(";")
+                tests_name = [s.strip() for s in tests_name]
+                results = []
+                for name in tests_name:
+                    tests = self.parser.capacity_tests(name)
+                    if tests is None or not tests:
+                        self.queue.put(("error", "No data for " + name))
+                        return
+                    else:
+                        results.append((name, tests))
+                self.queue.put(("percent_capacity", results))
             except Exception as e:
                 self.queue.put(("error", str(e)))
 
@@ -505,11 +529,17 @@ class Tasks():
         self.__build_parser()
         if self.parser is not None:
             try:
-                result = self.parser.discharge(test_name)
-                if result is None or not result:
-                    self.queue.put(("error", "No data for " + test_name))
-                else:
-                    self.queue.put(("discharge", result))
+                tests_name = test_name.split(";")
+                tests_name = [s.strip() for s in tests_name]
+                results = []
+                for name in tests_name:
+                    tests = self.parser.discharge(name)
+                    if tests is None or not tests:
+                        self.queue.put(("error", "No data for " + name))
+                        return
+                    else:
+                        results.append((name, tests))
+                self.queue.put(("discharge", results))
             except Exception as e:
                 self.queue.put(("error", str(e)))
 
@@ -517,11 +547,17 @@ class Tasks():
         self.__build_parser()
         if self.parser is not None:
             try:
-                result = self.parser.temperature(test_name)
-                if result is None or not result:
-                    self.queue.put(("error", "No data for " + test_name))
-                else:
-                    self.queue.put(("temperature", result))
+                tests_name = test_name.split(";")
+                tests_name = [s.strip() for s in tests_name]
+                results = []
+                for name in tests_name:
+                    tests = self.parser.temperature(name)
+                    if tests is None or not tests:
+                        self.queue.put(("error", "No data for " + name))
+                        return
+                    else:
+                        results.append((name, tests))
+                self.queue.put(("temperature", results))
             except Exception as e:
                 self.queue.put(("error", str(e)))
 
@@ -529,11 +565,17 @@ class Tasks():
         self.__build_parser()
         if self.parser is not None:
             try:
-                result = self.parser.wh(test_name)
-                if result is None or not result:
-                    self.queue.put(("error", "No data for " + test_name))
-                else:
-                    self.queue.put(("wh", result))
+                tests_name = test_name.split(";")
+                tests_name = [s.strip() for s in tests_name]
+                results = []
+                for name in tests_name:
+                    tests = self.parser.wh(name)
+                    if tests is None or not tests:
+                        self.queue.put(("error", "No data for " + name))
+                        return
+                    else:
+                        results.append((name, tests))
+                self.queue.put(("wh", results))
             except Exception as e:
                 self.queue.put(("error", str(e)))
 
@@ -541,11 +583,17 @@ class Tasks():
         self.__build_parser()
         if self.parser is not None:
             try:
-                result = self.parser.high_sampling(test_name)
-                if result is None:
-                    self.queue.put(("error", "No data for " + test_name))
-                else:
-                    self.queue.put(("high_sampling", result))
+                tests_name = test_name.split(";")
+                tests_name = [s.strip() for s in tests_name]
+                results = []
+                for name in tests_name:
+                    tests = self.parser.high_sampling(name)
+                    if tests is None or not tests:
+                        self.queue.put(("error", "No data for " + name))
+                        return
+                    else:
+                        results.append((name, tests))
+                self.queue.put(("high_sampling", results))
             except Exception as e:
                 self.queue.put(("error", str(e)))
 

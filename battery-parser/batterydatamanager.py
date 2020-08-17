@@ -16,6 +16,11 @@ WIDTH = 1000
 HEIGHT = 600
 
 class GUI():
+
+    ##############################
+    # GUI building
+    ##############################
+
     def __init__(self, root):
         self.root = root
         root.minsize(WIDTH, HEIGHT)
@@ -153,6 +158,13 @@ class GUI():
         self.tasks = Tasks(self.queue)
         self.root.after(200, self.process_queue)
 
+
+
+
+    ##############################
+    # Click managers
+    ##############################
+
     def open_file(self):
         if self.btn_open_file["text"] != "Stop":
             filepath = askopenfilename(filetypes=[("Text Files", "*.txt")])
@@ -268,6 +280,13 @@ class GUI():
             process.daemon = True
             process.start()
 
+
+
+
+    ##############################
+    # GUI results update
+    ##############################
+
     def show_info(self):
         messagebox.showinfo(TITLE, 
         """
@@ -330,6 +349,10 @@ class GUI():
         self.main_table_btn['state'] = 'normal'
         self.cycle_entry['state'] = 'normal'
 
+    ##############################
+    # plots
+    ##############################
+
     def percent_capacity_plot(self, records):
         self.percent_capacity_btn['state'] = 'normal'
         plt.figure(figsize=(12, 8))
@@ -389,6 +412,10 @@ class GUI():
         plt.xlabel('Capacity [Ah]')
         plt.show(block=False)
 
+    ##############################
+    # Queue that send results to the GUI
+    ##############################
+
     def process_queue(self):
         try:
             msg = self.queue.get(0)
@@ -422,6 +449,10 @@ class GUI():
             self.high_sampling_plot(msg[1])
 
         self.process_queue()
+
+##############################
+# Controller (it asks data and put results in the queue)
+##############################
 
 class Tasks():
     def __init__(self, queue):
@@ -596,6 +627,11 @@ class Tasks():
                 self.queue.put(("high_sampling", results))
             except Exception as e:
                 self.queue.put(("error", str(e)))
+
+
+##############################
+# GUI starting and main cycle
+##############################
 
 root = tk.Tk()
 root.title(TITLE)

@@ -77,6 +77,8 @@ class GUI():
         frame_soc_entry.pack(side=tk.LEFT)
         self.compute_soc_btn = tk.Button(frame_soc_main, text="Calculate", command=self.delivery_click)
         self.compute_soc_btn.pack(side=tk.LEFT)
+        self.percent_capacity_btn = tk.Button(frame_soc_main, text="Show % capacity plot", command=self.percent_capacity_click)
+        self.percent_capacity_btn.pack(side=tk.RIGHT, padx=15)
         frame_soc_main.pack(fill=tk.X)
 
         frame_tc = tk.Frame(tab2)
@@ -181,6 +183,15 @@ class GUI():
             process.daemon = True
             process.start()
 
+    def percent_capacity_click(self):
+        if not self.test_name.get():
+            self.show_error("Enter a test name")
+        else:
+            self.percent_capacity_btn['state'] = 'disabled'
+            process = Thread(target=self.tasks.percent_capacity, args=(self.test_name.get(),))
+            process.daemon = True
+            process.start()
+
     def main_table_click(self):
         self.main_tree.delete(*self.main_tree.get_children())
         cycle_n = self.test_main_n_cycle.get()
@@ -254,6 +265,7 @@ class GUI():
         self.btn_open_file["text"] = "Import new data"
         self.compute_soc_btn['state'] = 'normal'
         self.show_capacity_btn['state'] = 'normal'
+        self.percent_capacity_click['state'] = 'normal'
         self.main_table_btn['state'] = 'normal'
         self.cycle_entry['state'] = 'normal'
         self.main_plot_btn['state'] = 'normal'
@@ -266,6 +278,7 @@ class GUI():
         self.btn_open_file["text"] = "Import new data"
         self.compute_soc_btn['state'] = 'normal'
         self.show_capacity_btn['state'] = 'normal'
+        self.percent_capacity_click['state'] = 'normal'
         self.main_table_btn['state'] = 'normal'
         self.cycle_entry['state'] = 'normal'
         self.main_plot_btn['state'] = 'normal'
@@ -290,6 +303,17 @@ class GUI():
         for i, test in enumerate(tests):
             self.capacity_tree.insert("", i, i, values=test)
         self.show_capacity_btn['state'] = 'normal'
+
+    def percent_capacity_plot(self, records):
+        records = [record[1] for record in records]
+        max_capacity = max(records)
+        percent_values = [record / max_capacity * 100 for record in records]
+        plt.figure()
+        plt.plot(percent_values)
+        plt.ylabel('discharge capacity %')
+        plt.xlabel('cycle')
+        plt.show(block=False)
+        self.percent_capacity_btn['state'] = 'normal'
 
     def show_dis_table(self, records):
         for i, record in enumerate(records):
@@ -344,6 +368,8 @@ class GUI():
             self.show_delivery_percent(msg[1])
         if msg[0] == "capacity_test":
             self.show_capacity_test(msg[1])
+        if msg[0] == "percent_capacity":
+            self.percent_capacity_plot(msg[1])
         if msg[0] == "main_dis_table":
             self.show_dis_table(msg[1])
         if msg[0] == "discharge":
@@ -408,6 +434,18 @@ class Tasks():
                     self.queue.put(("error", "No data for " + test_name))
                 else:
                     self.queue.put(("capacity_test", tests))
+            except Exception as e:
+                self.queue.put(("error", str(e)))
+
+    def percent_capacity(self, test_name):
+        self.__build_parser()
+        if self.parser is not None:
+            try:
+                tests = self.parser.capacity_tests(test_name)
+                if tests is None or not tests:
+                    self.queue.put(("error", "No data for " + test_name))
+                else:
+                    self.queue.put(("percent_capacity", tests))
             except Exception as e:
                 self.queue.put(("error", str(e)))
 

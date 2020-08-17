@@ -308,8 +308,9 @@ class GUI():
         records = [record[1] for record in records]
         max_capacity = max(records)
         percent_values = [record / max_capacity * 100 for record in records]
+        cycle_index = range(1, len(percent_values) + 1)
         plt.figure()
-        plt.plot(percent_values)
+        plt.plot(cycle_index, percent_values)
         plt.ylabel('discharge capacity %')
         plt.xlabel('cycle')
         plt.show(block=False)
@@ -325,7 +326,7 @@ class GUI():
     def discharge_plot(self, records):
         self.main_plot_btn['state'] = 'normal'
         plt.figure()
-        plt.plot(records)
+        plt.plot(range(1, len(records) + 1), records)
         plt.ylabel('discharge capacity [Ah]')
         plt.xlabel('cycle')
         plt.show(block=False)
@@ -333,7 +334,7 @@ class GUI():
     def temperature_plot(self, records):
         self.temperature_plot_btn['state'] = 'normal'
         plt.figure()
-        plt.plot(records)
+        plt.plot(range(1, len(records) + 1), records)
         plt.ylabel("max temperature ['C]")
         plt.xlabel('cycle')
         plt.show(block=False)

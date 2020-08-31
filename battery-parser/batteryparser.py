@@ -54,8 +54,12 @@ class BatteryParser():
                         current_line = int(line_dictionary["DataSet"])
                         if current_line < latest:
                             queue.put(("upload-progress", "skipping already uploaded"))
-                            for _ in range(latest - current_line):
-                                next(f)
+                            try:
+                                for _ in range(latest - current_line):
+                                    next(f)
+                            except Exception as e:
+                                traceback.print_exception(type(e), e, e.__traceback__)
+                                raise type(e)("File already fully uploaded")
                             continue
 
                         if line_dictionary["Command"] != "Discharge" and line_dictionary["Command"] != "Charge":

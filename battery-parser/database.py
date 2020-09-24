@@ -14,11 +14,11 @@ LATEST_STORED_QUERY = """SELECT record_id from test_result_trial_end
 INSERT_TRIAL_END = """INSERT INTO test_result_trial_end
          (test_name, record_id, time, step_time, line, voltage, current, charging_capacity,
           discharging_capacity, wh_charging, wh_discharging, temperature, cycle_count,
-           max_temperature, average_tension) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"""
+           max_temperature, average_tension) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"""
 INSERT_TRIAL = """INSERT INTO test_result
          (test_name, record_id, time, step_time, line, voltage, current, charging_capacity,
           discharging_capacity, wh_charging, wh_discharging, temperature, cycle_count)
-           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"""
+           values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"""
 DELIVERY_QUERY = """SELECT discharging_capacity from test_result_trial_end
          where test_name = %s AND line = %s ORDER BY record_id ASC LIMIT 1"""
 FIRST_CAPACITY_QUERY = """SELECT discharging_capacity from test_result_trial_end
@@ -36,7 +36,7 @@ WH_QUERY = """SELECT wh_discharging from test_result_trial_end
 HIGH_SAMPLING_QUERY = """SELECT voltage, current, discharging_capacity, cycle_count from test_result_trial_end
          where test_name = %s AND line = %s ORDER BY record_id ASC"""
 
-ADD_N = 10
+ADD_N = 4
 
 class BatteryDB():
     def __init__(self):
@@ -51,9 +51,7 @@ class BatteryDB():
         self.trial_end = []
         self.other_trials = []
 
-        conn, cursor = self.connect()
-        cursor.close()
-        conn.close()
+        self.upload_conn, self.upload_cursor = self.connect()
 
     def resource_path(self, relative_path):
         base_path = pathlib.Path(__file__).parent.absolute()
@@ -167,15 +165,12 @@ class BatteryDB():
         self._upload()
 
     def _upload(self):
-        conn, cursor = self.connect()
         try:
-            cursor.executemany(INSERT_TRIAL, self.other_trials)
-            cursor.executemany(INSERT_TRIAL_END, self.trial_end)
-            conn.commit()
+            self.upload_cursor.executemany(INSERT_TRIAL, self.other_trials)
+            self.upload_cursor.executemany(INSERT_TRIAL_END, self.trial_end)
+            self.upload_conn.commit()
         except Exception as e:
-            conn.rollback()
+            self.upload_conn.rollback()
             raise e
         self.trial_end = []
         self.other_trials = []
-        cursor.close()
-        conn.close()

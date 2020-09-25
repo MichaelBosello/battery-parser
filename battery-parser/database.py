@@ -36,7 +36,7 @@ WH_QUERY = """SELECT wh_discharging from test_result_trial_end
 HIGH_SAMPLING_QUERY = """SELECT voltage, current, discharging_capacity, cycle_count from test_result_trial_end
          where test_name = %s AND line = %s ORDER BY record_id ASC"""
 
-ADD_N = 4
+ADD_N = 10000
 
 class BatteryDB():
     def __init__(self):
@@ -66,7 +66,7 @@ class BatteryDB():
                     database=self.database,
                     raise_on_warnings=True
                 )
-        cursor = conn.cursor(prepared=True)
+        cursor = conn.cursor()
         return conn, cursor
 
     def get_latest_stored(self, test_name):
@@ -158,7 +158,7 @@ class BatteryDB():
     def add_record(self, trial_end_dict, others_trials):
         self.trial_end.append(trial_end_dict)
         self.other_trials.extend(others_trials)
-        if len(self.trial_end) >= ADD_N:
+        if len(self.trial_end) + len(self.other_trials) >= ADD_N:
             self._upload()
 
     def flush_add_record(self):

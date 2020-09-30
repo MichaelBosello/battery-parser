@@ -175,7 +175,8 @@ class BatteryParser():
             if hs_up is None or not hs_up or hs_down is None or not hs_down:
                 return None
             results = []
-            for i in range(0, len(hs_up)):
+            hs_len = min(len(hs_up), len(hs_down))
+            for i in range(0, hs_len):
                 if hs_up[i][3] == 1:
                     resistence = []
                     capacity = []

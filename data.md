@@ -9,8 +9,8 @@
 | line                 | procedure code, see below                             |
 | voltage              | V[V]                                                  |
 | current              | I[A]                                                  |
-| charging_capacity    | capacity measured during charge. It is zeroed at each charge/discharge cycle          |
-| discharging_capacity | capacity measured during discharge. It is zeroed at each charge/discharge cycle       |
+| charging_capacity    | capacity measured during charge. During charging cicles, it represent the present capacity of the battery. It is zeroed at each charge/discharge cycle          |
+| discharging_capacity | capacity measured during discharge. It is how much the battery has been discharged i.e. during discharging cicles: present_capacity = charging_capacity - discharge capacity. It is zeroed at each charge/discharge cycle       |
 | wh_charging          | Wh measured during charge. It is zeroed at each discharge cycle                       |
 | wh_discharging       | Wh measured during discharge. It is zeroed at each discharge cycle                    |
 | temperature          | cell temperature measured using NTC sensor placed in the middle of the cell's body and attached using thermal interface material        |
